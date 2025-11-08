@@ -197,13 +197,12 @@ local currentDepth = 0
 turtle.resetHome()
 
 while currentDepth < maxDepth do
-    turtle.forward(currentDepth)
-
     local remaining = maxDepth - currentDepth
     local sentError = false
     while calculateMaxLength(currentDepth) < remaining do
         if not sentError then
             print("Nicht genug Fuel um die gewünschte Tiefe zu erreichen.")
+            sentError = true
         end
 
         if peripheral.getType( "left" ) == "chat_box" then
@@ -214,7 +213,9 @@ while currentDepth < maxDepth do
         os.sleep(3)
     end
 
-    for i = currentDepth, maxDepth do
+    turtle.forward(currentDepth)
+
+    for i = currentDepth + 1, maxDepth do
         -- turtle requires 3 empty slots, otherwise the turtle goes back and will empty the inventory
         if not turtle.hasEmptySlots(3) then
             break
