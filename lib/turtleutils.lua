@@ -116,8 +116,6 @@ local function undoSteps(amount)
         local moveAction = nil
         local position = turtleWay[#turtleWay]
 
-        print("step ", #turtleWay, "undo:", position)
-
         if position == POSITION.left then
             moveAction = turtleTurnRight;
         elseif position == POSITION.right then
