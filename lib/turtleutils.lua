@@ -7,17 +7,25 @@ local POSITION = {
     up = 'u',
     down = 'd'
 }
-
--- default computercraft commands
-local turtleTurnLeft = turtle.turnLeft;
-local turtleTurnRight = turtle.turnRight;
-local turtleForward = turtle.forward;
-local turtleBack = turtle.back;
-local turtleUp = turtle.up;
-local turtleDown = turtle.down;
-local trackMovement = true;
+local turtleTurnLeft = turtle.turnLeft
+local turtleTurnRight = turtle.turnRight
+local turtleForward = turtle.forward
+local turtleBack = turtle.back
+local turtleUp = turtle.up
+local turtleDown = turtle.down
+local trackMovement = true
 local turtleSlots = 16
-local turtleWay = {};
+local turtleWay = {}
+
+local function tableContains(table, value)
+    for _, tableValue in pairs(table) do
+        if tableValue == value then
+            return true
+        end
+    end
+
+    return false
+end
 
 local function loadLastWay()
     if fs.exists(filename) then
@@ -63,17 +71,17 @@ local function move(position, amount)
 
     local moveAction = nil
     if position == POSITION.left then
-        moveAction = turtleTurnLeft;
+        moveAction = turtleTurnLeft
     elseif position == POSITION.right then
-        moveAction = turtleTurnRight;
+        moveAction = turtleTurnRight
     elseif position == POSITION.forward then
-        moveAction = turtleForward;
+        moveAction = turtleForward
     elseif position == POSITION.back then
-        moveAction = turtleBack;
+        moveAction = turtleBack
     elseif position == POSITION.up then
-        moveAction = turtleUp;
+        moveAction = turtleUp
     elseif position == POSITION.down then
-        moveAction = turtleDown;
+        moveAction = turtleDown
     else
         return false
     end
@@ -106,8 +114,16 @@ local function undoSteps(amount)
         amount = #turtleWay
     end
 
+    if amount < #turtleWay then
+        amount = #turtleWay
+    end
+
+    if #turtleWay == 0 then
+        return true
+    end
+
     if amount < 1 then
-        print("Invalid amount parameter");
+        print("Invalid amount parameter")
         return false
     end
 
@@ -117,17 +133,17 @@ local function undoSteps(amount)
         local position = turtleWay[#turtleWay]
 
         if position == POSITION.left then
-            moveAction = turtleTurnRight;
+            moveAction = turtleTurnRight
         elseif position == POSITION.right then
-            moveAction = turtleTurnLeft;
+            moveAction = turtleTurnLeft
         elseif position == POSITION.forward then
-            moveAction = turtleBack;
+            moveAction = turtleBack
         elseif position == POSITION.back then
-            moveAction = turtleForward;
+            moveAction = turtleForward
         elseif position == POSITION.up then
-            moveAction = turtleDown;
+            moveAction = turtleDown
         elseif position == POSITION.down then
-            moveAction = turtleUp;
+            moveAction = turtleUp
         else
             print("Invalid movement (" .. position .. ")")
             return false
@@ -141,6 +157,41 @@ local function undoSteps(amount)
             return false
         end
     end
+
+    return true
+end
+
+turtle.addToWay = function(direction, amount)
+    amount = amount or 1
+
+    if amount < 1 then
+        print("Invalid amount")
+        return false
+    end
+
+    local add
+    if direction == "left" then
+        add = POSITION.left
+    elseif direction == "right" then
+        add = POSITION.right
+    elseif direction == "down" then
+        add = POSITION.down
+    elseif direction == "up" then
+        add = POSITION.up
+    elseif direction == "forward" then
+        add = POSITION.forward
+    elseif direction == "back" then
+        add = POSITION.back
+    else
+        print("Invalid direction")
+        return false
+    end
+
+    for i = 1, amount do
+        table.insert(turtleWay, add)
+    end
+
+    saveWay()
 
     return true
 end
@@ -250,14 +301,22 @@ turtle.forwardWithDig = function()
     return true
 end
 
-turtle.dropSlots = function(startSlot, endSlot)
+turtle.dropSlots = function(startSlot, endSlot, direction, ignoreSlots)
     startSlot = startSlot or 1
     endSlot = math.min(endSlot or turtleSlots, turtleSlots)
 
     local currentSlot = turtle.getSelectedSlot()
     for slot = startSlot, endSlot do
-        turtle.select(slot)
-        turtle.drop()
+        if ignoreSlots == nil or not tableContains(ignoreSlots, slot) then
+            turtle.select(slot)
+            if direction == "up" then
+                turtle.dropUp()
+            elseif direction == "down" then
+                turtle.dropDown()
+            else
+                turtle.drop()
+            end
+        end
     end
 
     turtle.select(currentSlot)
