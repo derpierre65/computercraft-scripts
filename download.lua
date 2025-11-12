@@ -1,7 +1,18 @@
+local httpPrefix = ""
+
+if fs.exists("http_prefix") then
+    local httpPrefixFile = fs.open("http_prefix", 'r')
+    httpPrefix = httpPrefixFile.readAll()
+    httpPrefixFile.close()
+end
+
 local function downloadJsonLib()
-    fs.open('lib/json.lua', 'w').write(
-        http.get('https://raw.githubusercontent.com/LuaDist/dkjson/master/dkjson.lua').readAll()
+    local jsonfile = fs.open('lib/json.lua', 'w')
+    fs.makeDir("lib")
+    jsonfile.write(
+            http.get(httpPrefix .. 'https://raw.githubusercontent.com/LuaDist/dkjson/master/dkjson.lua').readAll()
     )
+    jsonfile.close()
 end
 
 local downloadStepPercent = nil
@@ -27,13 +38,18 @@ if type(textutils.unserializeJSON) == "nil" and not fs.exists("lib/json.lua") th
     downloadJsonLib()
 end
 
-local deserializeJson = textutils.unserializeJSON or require("lib/json").decode
-local files = deserializeJson(http.get('https://api.github.com/repos/derpierre65/computercraft-scripts/contents/programs').readAll())
+local deserializeJson = textutils.unserializeJSON
+if not deserializeJson then
+    local json = require and require("lib/json") or loadfile("lib/json.lua")()
+    deserializeJson = json.decode
+end
+
+local files = deserializeJson(http.get(httpPrefix .. 'https://api.github.com/repos/derpierre65/computercraft-scripts/contents/programs').readAll())
 local selected = 1
 
 local function downloadLuaScript(filename, url, script)
     if url ~= nil then
-        script = http.get(url).readAll()
+        script = http.get(httpPrefix .. url).readAll()
     end
 
     local osFile = fs.open(filename, "w")
@@ -56,7 +72,7 @@ local function downloadFile(file)
     end
 
     -- download script
-    local script = http.get(file.download_url).readAll()
+    local script = http.get(httpPrefix .. file.download_url).readAll()
     os.sleep(1)
     printDownloadStatus(2)
 
@@ -111,9 +127,13 @@ local function drawSelectMenu()
     print("Welches Programm möchtest du herunterladen?")
     for i = from, to do
         if i == selected then
-            term.setTextColor(colors.green)
+            if term.setTextColor then
+                term.setTextColor(colors.green)
+            end
             print("[x] " .. files[i].name)
-            term.setTextColor(colors.white)
+            if term.setTextColor then
+                term.setTextColor(colors.white)
+            end
         else
             print("[ ] " .. files[i].name)
         end
@@ -122,21 +142,26 @@ end
 
 drawSelectMenu()
 
+local keyUp = keys and keys.up or 200
+local keyDown = keys and keys.down or 208
+local keyEnter = keys and keys.down or 28
+
 while true do
     local _, key = os.pullEvent("key")
-    if key == keys.up then
+    print(key)
+    if key == keyUp then
         selected = selected - 1
         if selected < 1 then
             selected = #files
         end
         drawSelectMenu()
-    elseif key == keys.down then
+    elseif key == keyDown then
         selected = selected + 1
         if selected > #files then
             selected = 1
         end
         drawSelectMenu()
-    elseif key == keys.enter then
+    elseif key == keyEnter then
         term.clear()
         term.setCursorPos(1, 1)
         print("Download für " .. files[selected].name .. " wird vorbereitet...")
